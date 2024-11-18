@@ -1,0 +1,148 @@
+library IEEE;
+use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
+use std.textio.all;
+
+entity testbench is
+end testbench;
+
+architecture Testbench of testbench is
+    -- Component Declaration for the Unit Under Test (UUT)
+    component Adder_32b
+        port(
+            a       : in  std_logic_vector(31 downto 0);
+            b       : in  std_logic_vector(31 downto 0);
+            cin     : in  std_logic;
+            rslt_add: out std_logic_vector(31 downto 0);
+            cout    : out std_logic
+        );
+    end component;
+
+    -- Inputs
+    signal a_tb      : std_logic_vector(31 downto 0) := (others => '0');
+    signal b_tb      : std_logic_vector(31 downto 0) := (others => '0');
+    signal cin_tb    : std_logic := '0';
+
+    -- Outputs
+    signal rslt_add_tb : std_logic_vector(31 downto 0);
+    signal cout_tb     : std_logic;
+
+    -- Helper procedure to print test case details
+    procedure print_test_case(
+        constant test_num   : in integer;
+        constant a_val      : in std_logic_vector(31 downto 0);
+        constant b_val      : in std_logic_vector(31 downto 0);
+        constant cin_val    : in std_logic;
+        constant exp_result : in std_logic_vector(31 downto 0);
+        constant exp_cout   : in std_logic
+    ) is
+        variable l : line;
+    begin
+        write(l, string'("Test Case ") & integer'image(test_num) & string'(":"));
+        writeline(output, l);
+        write(l, string'("  A        = ") & to_hstring(unsigned(a_val)));
+        writeline(output, l);
+        write(l, string'("  B        = ") & to_hstring(unsigned(b_val)));
+        writeline(output, l);
+        write(l, string'("  Cin      = ") & std_logic'image(cin_val));
+        writeline(output, l);
+    end procedure;
+
+begin
+    -- Instantiate the Unit Under Test (UUT)
+    UUT: Adder_32b port map (
+        a       => a_tb,
+        b       => b_tb,
+        cin     => cin_tb,
+        rslt_add=> rslt_add_tb,
+        cout    => cout_tb
+    );
+
+    -- Stimulus process
+    stimulus: process
+        -- Helper function to perform addition and check results
+        procedure check_addition(
+            constant a_val      : in std_logic_vector(31 downto 0);
+            constant b_val      : in std_logic_vector(31 downto 0);
+            constant cin_val    : in std_logic;
+            constant test_num   : in integer
+        ) is
+            variable expected_result : std_logic_vector(32 downto 0);
+            variable expected_rslt   : std_logic_vector(31 downto 0);
+            variable expected_cout   : std_logic;
+        begin
+            -- Perform expected addition with carry
+            expected_result := std_logic_vector(
+                unsigned('0' & a_val) + 
+                unsigned('0' & b_val) + 
+                unsigned'(0 => cin_val)
+            );
+            
+            expected_rslt := expected_result(31 downto 0);
+            expected_cout := expected_result(32);
+
+            -- Print test case details
+            print_test_case(
+                test_num, a_val, b_val, cin_val, 
+                expected_rslt, expected_cout
+            );
+
+            -- Set input values
+            a_tb     <= a_val;
+            b_tb     <= b_val;
+            cin_tb   <= cin_val;
+            
+            -- Wait for propagation
+            wait for 10 ns;
+
+            -- Assert result
+            assert rslt_add_tb = expected_rslt
+                report "Test " & integer'image(test_num) & 
+                       ": Incorrect Result. Expected " & 
+                       to_hstring(unsigned(expected_rslt)) & 
+                       ", Got " & to_hstring(unsigned(rslt_add_tb))
+                severity failure;
+
+            -- Assert carry out
+            assert cout_tb = expected_cout
+                report "Test " & integer'image(test_num) & 
+                       ": Incorrect Carry Out. Expected " & 
+                       std_logic'image(expected_cout) & 
+                       ", Got " & std_logic'image(cout_tb)
+                severity failure;
+        end procedure;
+
+    begin
+        -- Test Case 1: Zero + Zero (No Carry In)
+        check_addition(
+            x"00000000", x"00000000", '0', 1
+        );
+
+        -- Test Case 2: Simple Addition without Carry
+        check_addition(
+            x"00000005", x"00000003", '0', 2
+        );
+
+
+        -- Test Case 4: Large Numbers without Overflow
+        check_addition(
+            x"7FFFFFFF", x"00000001", '0', 4
+        );
+
+        -- Test Case 5: Large Numbers with Carry Out
+        check_addition(
+            x"FFFFFFFF", x"00000001", '0', 5
+        );
+
+        -- Test Case 7: Random Large Numbers
+        check_addition(
+            x"A5A5A5A5", x"5A5A5A5A", '0', 7
+        );
+
+        -- All tests passed
+        report "ALL TESTS PASSED SUCCESSFULLY";
+        
+        -- End simulation
+        wait;
+    end process;
+end Testbench;
