@@ -1,0 +1,56 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity testbench is
+end testbench;
+
+architecture behavior of testbench is
+    -- Component declaration for the ALU32 (the design under test)
+    component ALU32
+        Port ( a       : in  std_logic_vector (31 downto 0);
+               b       : in  std_logic_vector (31 downto 0);
+               ALUctrl : in  STD_LOGIC_VECTOR (3 downto 0);        
+               rslt32  : out std_logic_vector (31 downto 0);
+               cond    : out std_logic);
+    end component;
+
+    -- Signals to connect to the ALU32
+    signal a       : std_logic_vector(31 downto 0) := (others => '0');
+    signal b       : std_logic_vector(31 downto 0) := (others => '0');
+    signal ALUctrl : std_logic_vector(3 downto 0);
+    signal rslt32  : std_logic_vector(31 downto 0);
+    signal cond    : std_logic;
+
+begin
+    -- Instantiate the ALU32
+    uut: ALU32
+        Port map (
+            a => a,
+            b => b,
+            ALUctrl => ALUctrl,
+            rslt32 => rslt32,
+            cond => cond
+        );
+
+    -- Stimulus process
+    stim_proc: process
+    begin
+		        -- Reset for next test case
+        -- Test Case 3: Different ALUctrl for carry checking
+        ALUctrl <= "0111";  -- Arbitrary ALU control signal for carry
+        a <= "00000000000000000000000000000111";
+        b <= "00000000000000000000000000000111";
+        wait for 10 ns;
+
+        -- Check result of operation
+        assert(cond = '0') 
+            report "ADD failed for carry" severity failure;
+
+        wait for 10 ns;  -- Allow time to settle
+
+        -- End of test
+        wait;
+    end process;
+end behavior;
