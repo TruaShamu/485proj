@@ -1,0 +1,61 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity testbench is
+end testbench;
+
+architecture behavior of testbench is
+    -- Component declaration for the ALU32 (the design under test)
+    component ALU32
+        Port ( a       : in  std_logic_vector (31 downto 0);
+               b       : in  std_logic_vector (31 downto 0);
+               ALUctrl : in  STD_LOGIC_VECTOR (3 downto 0);		
+               rslt32  : out std_logic_vector (31 downto 0);
+               cond    : out std_logic);
+    end component;
+
+    -- Signals to connect to the ALU32
+    signal a       : std_logic_vector(31 downto 0) := (others => '0');
+    signal b       : std_logic_vector(31 downto 0) := (others => '0');
+    signal ALUctrl : std_logic_vector(3 downto 0);
+    signal rslt32  : std_logic_vector(31 downto 0);
+    signal cond    : std_logic;
+
+begin
+    -- Instantiate the ALU32
+    uut: ALU32
+        Port map (
+            a => a,
+            b => b,
+            ALUctrl => ALUctrl,
+            rslt32 => rslt32,
+            cond => cond
+        );
+
+    -- Stimulus process
+    stim_proc: process
+    begin
+        -- Test Case 1: Rsel=0, Ainv=0, Binv=0, Cin=0 for ORing all bits
+        ALUctrl <= "0000";  -- Rsel=0, Ainv=0, Binv=0, Cin=0
+        a <= "00000000000000000000000011111111";
+		b <= "11111111000000000000000000000000";
+        wait for 10 ns;
+
+        -- Check result of OR operation
+        assert(rslt32 = "11111111000000000000000011111111") report "Test Case 1 Failed: OR operation" severity failure;
+
+        -- Test Case 2: Rsel=0, Ainv=1, Binv=1, Cin=0 for NANDing all bits
+        ALUctrl <= "1100";  -- Rsel=0, Ainv=1, Binv=1, Cin=0
+        a <= "00000000000000000000000011111111";
+		b <= "11111111000000000000000000000000";
+        wait for 10 ns;
+
+        -- Check result of NAND operation
+        assert(rslt32 = "11111111111111111111111111111111") report "Test Case 2 Failed: NAND operation" severity failure;
+
+        -- End simulation
+        wait;
+    end process;
+end behavior;
