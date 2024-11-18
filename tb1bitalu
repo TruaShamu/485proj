@@ -1,0 +1,74 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity testbench is
+end testbench;
+
+architecture Behavior of testbench is
+
+    -- Component Declaration for the ALU
+    COMPONENT ALU
+    Port ( a    : in  std_logic;
+           b    : in  std_logic;
+           cin  : in  std_logic;
+           Rsel : in  std_logic;
+           rslt : out std_logic;
+           s    : out std_logic;
+           cout : out std_logic);
+    END COMPONENT;
+
+    -- Inputs to the ALU
+    signal a, b, cin, Rsel : std_logic := '0';
+    
+    -- Outputs from the ALU
+    signal rslt, s, cout : std_logic;
+
+begin
+
+    -- Instantiate the ALU
+    uut: ALU PORT MAP(
+        a => a,
+        b => b,
+        cin => cin,
+        Rsel => Rsel,
+        rslt => rslt,
+        s => s,
+        cout => cout
+    );
+
+    -- Test process
+    process
+    begin
+        -- Test case 1: Rsel = 0, OR operation
+        a <= '0'; b <= '0'; cin <= '0'; Rsel <= '0'; -- OR operation: 0 OR 0
+        wait for 10 ns;
+        
+        a <= '0'; b <= '1'; cin <= '0'; Rsel <= '0'; -- OR operation: 0 OR 1
+        wait for 10 ns;
+        
+        a <= '1'; b <= '0'; cin <= '0'; Rsel <= '0'; -- OR operation: 1 OR 0
+        wait for 10 ns;
+        
+        a <= '1'; b <= '1'; cin <= '0'; Rsel <= '0'; -- OR operation: 1 OR 1
+        wait for 10 ns;
+
+        -- Test case 2: Rsel = 1, ADD operation
+        a <= '0'; b <= '0'; cin <= '0'; Rsel <= '1'; -- ADD operation: 0 + 0 + 0
+        wait for 10 ns;
+        
+        a <= '1'; b <= '0'; cin <= '0'; Rsel <= '1'; -- ADD operation: 1 + 0 + 0
+        wait for 10 ns;
+        
+        a <= '1'; b <= '1'; cin <= '0'; Rsel <= '1'; -- ADD operation: 1 + 1 + 0
+        wait for 10 ns;
+        
+        a <= '1'; b <= '1'; cin <= '1'; Rsel <= '1'; -- ADD operation: 1 + 1 + 1
+        wait for 10 ns;
+
+        -- End of simulation
+        wait;
+    end process;
+
+end Behavior;
