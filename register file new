@@ -1,0 +1,45 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.NUMERIC_STD.all;
+
+entity Register_File is
+    port(
+        ReadRegister1 : IN std_logic_vector(4 downto 0); -- Register rs
+        ReadRegister2 : IN std_logic_vector(4 downto 0); -- Register rt
+        WriteRegister : IN std_logic_vector(4 downto 0); -- Destination register
+        WriteData     : IN std_logic_vector(31 downto 0); -- Signal for data to be written
+        RegWrite      : IN std_logic; -- Whether to write or not.
+        ReadData1     : OUT std_logic_vector(31 downto 0);
+        ReadData2     : OUT std_logic_vector(31 downto 0)
+    );
+end Register_File;
+
+architecture Behavioral of Register_File is
+    -- Define the register file as an array of 32 registers, each 32 bits wide
+    type RegisterFileType is array (0 to 31) of std_logic_vector(31 downto 0);
+    
+    -- Signal for the registers, initialized with specific values
+    signal registers : RegisterFileType := (
+        x"00000000", x"00000001", x"00000002", x"00000003",
+        x"00000004", x"00000005", x"00000006", x"00000007",
+        x"00000008", x"00000009", x"0000000A", x"000000FF",
+        x"0000FF00", x"0000FF01", x"00000400", x"00000500",
+        x"00000600", x"00000700", x"00000800", x"00000900",
+        x"00000A00", x"00000B00", x"00000C00", x"00000D00",
+        x"00000E00", x"00000F00", x"00001000", x"00001100",
+        x"00001200", x"00001300", x"00001400", x"00001500"
+    );
+    
+begin
+    -- Read data from registers
+    ReadData1 <= registers(to_integer(unsigned(ReadRegister1)));
+    ReadData2 <= registers(to_integer(unsigned(ReadRegister2)));
+    
+    -- Write process for updating registers
+    write_process: process(RegWrite)
+    begin
+        if RegWrite = '1' then
+            registers(to_integer(unsigned(WriteRegister))) <= WriteData;
+        end if;
+    end process;
+end Behavioral;
