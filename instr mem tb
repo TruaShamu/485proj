@@ -1,0 +1,53 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity testbench is
+end testbench;
+
+architecture Behavioral of testbench is
+
+    -- Component Declaration for the Unit Under Test (UUT)
+    component Instruction_Memory is
+        Port ( 
+            ReadAddress : in STD_LOGIC_VECTOR(31 downto 0);
+            Instruction : out STD_LOGIC_VECTOR(31 downto 0)
+        );
+    end component;
+
+    -- Signals for the testbench
+    signal ReadAddress : STD_LOGIC_VECTOR(31 downto 0);
+    signal Instruction : STD_LOGIC_VECTOR(31 downto 0);
+
+begin
+
+    -- Instantiate the UUT
+    uut: Instruction_Memory
+        Port map (
+            ReadAddress => ReadAddress,
+            Instruction => Instruction
+        );
+
+    -- Test process
+    test_process: process
+        variable expected_instruction : STD_LOGIC_VECTOR(31 downto 0);
+    begin
+        -- The instruction we wrote in memory
+        expected_instruction := "00000000111000101101000000100000"; -- 32-bit string
+        
+        -- Set the read address to 100 (address where the instruction is written)
+        ReadAddress <= std_logic_vector(to_unsigned(100, 32)); -- Address 100
+
+        -- Wait for the instruction to propagate and be read
+        wait for 20 ns;  -- Wait for the read operation to settle
+        
+        -- Compare the read instruction with the expected value
+        assert Instruction = expected_instruction
+        report "Test failed: Read instruction does not match expected value!"
+        severity error;
+
+        -- End simulation
+        wait;
+    end process;
+
+end Behavioral;
