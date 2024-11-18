@@ -1,0 +1,76 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.NUMERIC_STD.all;
+
+entity testbench is
+end testbench;
+
+architecture behavior of testbench is
+    -- Signals for the Register_File inputs and outputs
+    signal ReadRegister1 : std_logic_vector(4 downto 0);
+    signal ReadRegister2 : std_logic_vector(4 downto 0);
+    signal WriteRegister : std_logic_vector(4 downto 0);
+    signal WriteData     : std_logic_vector(31 downto 0);
+    signal RegWrite      : std_logic;
+    signal ReadData1     : std_logic_vector(31 downto 0);
+    signal ReadData2     : std_logic_vector(31 downto 0);
+
+    -- Component Declaration for the Unit Under Test (UUT)
+    component Register_File
+        port(
+            ReadRegister1 : IN std_logic_vector(4 downto 0);
+            ReadRegister2 : IN std_logic_vector(4 downto 0);
+            WriteRegister : IN std_logic_vector(4 downto 0);
+            WriteData     : IN std_logic_vector(31 downto 0);
+            RegWrite      : IN std_logic;
+            ReadData1     : OUT std_logic_vector(31 downto 0);
+            ReadData2     : OUT std_logic_vector(31 downto 0)
+        );
+    end component;
+
+begin
+    -- Instantiate the Register_File UUT
+    uut: Register_File
+        port map (
+            ReadRegister1 => ReadRegister1,
+            ReadRegister2 => ReadRegister2,
+            WriteRegister => WriteRegister,
+            WriteData     => WriteData,
+            RegWrite      => RegWrite,
+            ReadData1     => ReadData1,
+            ReadData2     => ReadData2
+        );
+
+    -- Testbench process
+    stimulus: process
+    begin
+        -- Initialize signals
+        RegWrite <= '0';  -- Disable writing
+        WriteData <= (others => '0');
+        WriteRegister <= (others => '0');
+
+        -- Read from register 11
+        ReadRegister1 <= "01011";  -- Register 11
+        ReadRegister2 <= "01101";  -- Register 13
+        wait for 10 ns; -- Wait for a short time to simulate reading
+        report "Read Register 11 : " & to_hstring(ReadData1); -- Output the value of ReadData1
+        report "Read Register 13 : " & to_hstring(ReadData2); -- Output the value of ReadData2
+
+        -- Write to register 5
+        WriteRegister <= "00101";  -- Register 5
+        WriteData <= x"12345678";
+        RegWrite <= '1';
+        wait for 10 ns;
+
+        -- Read from register 5 to verify the write
+        ReadRegister1 <= "00101";  -- Register 5
+        ReadRegister2 <= "00101";  -- Register 5 again
+        RegWrite <= '0';
+        wait for 10 ns;
+        report "Read Register 5 : " & to_hstring(ReadData1); -- Output the value of ReadData1
+        report "Read Register 5 : " & to_hstring(ReadData2); -- Output the value of ReadData2
+
+        -- End the simulation
+        wait;
+    end process;
+end behavior
