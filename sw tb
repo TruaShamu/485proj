@@ -1,0 +1,143 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.NUMERIC_STD.all;
+
+entity testbench is
+end testbench;
+
+architecture behavior of testbench is
+    -- Signals for the Register_File
+    signal ReadRegister1 : std_logic_vector(4 downto 0);
+    signal ReadRegister2 : std_logic_vector(4 downto 0);
+    signal WriteRegister : std_logic_vector(4 downto 0);
+    signal WriteData     : std_logic_vector(31 downto 0);
+    signal RegWrite      : std_logic;
+    signal ReadData1     : std_logic_vector(31 downto 0);
+    signal ReadData2     : std_logic_vector(31 downto 0);
+    
+    -- Signals for ALU32
+    signal ALUCtrl       : std_logic_vector(3 downto 0);
+    signal ALU_result    : std_logic_vector(31 downto 0);
+    signal ALU_cond      : std_logic;
+    
+    -- Signals for Data_Memory
+    signal MemRead       : std_logic;
+    signal MemWrite      : std_logic;
+    signal MemAddress    : std_logic_vector(31 downto 0);
+    signal MemWriteData  : std_logic_vector(31 downto 0);
+    signal MemReadData   : std_logic_vector(31 downto 0);
+    
+    -- Variables to store values
+    signal rega          : std_logic_vector(31 downto 0);
+    signal regb          : std_logic_vector(31 downto 0);
+    signal result        : std_logic_vector(31 downto 0);
+    signal imm           : std_logic_vector(31 downto 0);
+
+    -- Component Declaration for Register_File
+    component Register_File
+        port(
+            ReadRegister1 : IN std_logic_vector(4 downto 0);
+            ReadRegister2 : IN std_logic_vector(4 downto 0);
+            WriteRegister : IN std_logic_vector(4 downto 0);
+            WriteData     : IN std_logic_vector(31 downto 0);
+            RegWrite      : IN std_logic;
+            ReadData1     : OUT std_logic_vector(31 downto 0);
+            ReadData2     : OUT std_logic_vector(31 downto 0)
+        );
+    end component;
+
+    -- Component Declaration for ALU32
+    component ALU32
+        port(
+            a       : in  std_logic_vector(31 downto 0);
+            b       : in  std_logic_vector(31 downto 0);
+            ALUctrl : in  std_logic_vector(3 downto 0);
+            rslt32  : out std_logic_vector(31 downto 0);
+            cond    : out std_logic
+        );
+    end component;
+
+    -- Component Declaration for Data_Memory
+    component Data_Memory
+        port(
+            Address   : in  std_logic_vector(31 downto 0);
+            WriteData : in  std_logic_vector(31 downto 0);
+            MemRead   : in  std_logic;
+            MemWrite  : in  std_logic;
+            ReadData  : out std_logic_vector(31 downto 0)
+        );
+    end component;
+
+begin
+    -- Instantiate the Register_File
+    reg_file: Register_File
+        port map (
+            ReadRegister1 => ReadRegister1,
+            ReadRegister2 => ReadRegister2,
+            WriteRegister => WriteRegister,
+            WriteData     => WriteData,
+            RegWrite      => RegWrite,
+            ReadData1     => ReadData1,
+            ReadData2     => ReadData2
+        );
+
+    -- Instantiate the ALU32
+    alu: ALU32
+        port map (
+            a       => imm,         -- Changed to use imm instead of rega
+            b       => regb,
+            ALUctrl => ALUCtrl,
+            rslt32  => ALU_result,
+            cond    => ALU_cond
+        );
+
+    -- Instantiate the Data_Memory
+    data_mem: Data_Memory
+        port map (
+            Address   => MemAddress,
+            WriteData => MemWriteData,
+            MemRead   => MemRead,
+            MemWrite  => MemWrite,
+            ReadData  => MemReadData
+        );
+
+    -- Testbench process
+ stimulus: process
+begin
+    -- First, set the immediate value and wait
+    imm <= std_logic_vector(to_unsigned(100, 32));
+    wait for 10 ns;  -- Give time for imm to stabilize
+    
+    -- Then do register operations
+    ReadRegister1 <= "00001";
+    ReadRegister2 <= "00010";
+    wait for 10 ns;
+    
+    -- Then capture register values
+    rega <= ReadData1;
+    regb <= ReadData2;
+    wait for 10 ns;  -- Give time for values to stabilize
+    
+    -- Then perform ALU operation
+    ALUCtrl <= "0001";
+    wait for 10 ns;
+    
+    -- Now capture result
+    result <= ALU_result;
+
+        -- 6. Write rega to memory at address result
+        MemAddress <= result;
+        MemWriteData <= rega;
+        MemWrite <= '1';
+        wait for 10 ns;
+        
+        -- Disable memory write and verify the write operation
+        MemWrite <= '0';
+        MemRead <= '1';
+        wait for 10 ns;
+        report "Verification - Memory at address " & to_hstring(result) & " : " & to_hstring(MemReadData);
+
+        -- End simulation
+        wait;
+    end process;
+end behavior;
