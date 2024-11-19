@@ -1,0 +1,122 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.NUMERIC_STD.all;
+
+entity testbench is
+end testbench;
+
+architecture behavior of testbench is
+    -- Signals for the Register_File inputs and outputs
+    signal ReadRegister1 : std_logic_vector(4 downto 0);
+    signal ReadRegister2 : std_logic_vector(4 downto 0);
+    signal WriteRegister : std_logic_vector(4 downto 0);
+    signal WriteData     : std_logic_vector(31 downto 0);
+    signal RegWrite      : std_logic;
+    signal ReadData1     : std_logic_vector(31 downto 0);
+    signal ReadData2     : std_logic_vector(31 downto 0);
+    
+    -- Signals for ALU32
+    signal ALUCtrl       : std_logic_vector(3 downto 0);
+    signal ALU_result    : std_logic_vector(31 downto 0);
+    signal ALU_cond      : std_logic;
+    
+    -- Variables to store register values
+    signal rega          : std_logic_vector(31 downto 0);
+    -- Define 16-bit immediate value and its sign-extended version
+    signal imm           : std_logic_vector(15 downto 0) := x"8F4A"; -- arbitrary 16-bit value
+    signal imm_extended  : std_logic_vector(31 downto 0);
+    signal result        : std_logic_vector(31 downto 0);
+    
+    signal PC : integer := 100;
+
+    -- Component Declaration for Register_File
+    component Register_File
+        port(
+            ReadRegister1 : IN std_logic_vector(4 downto 0);
+            ReadRegister2 : IN std_logic_vector(4 downto 0);
+            WriteRegister : IN std_logic_vector(4 downto 0);
+            WriteData     : IN std_logic_vector(31 downto 0);
+            RegWrite      : IN std_logic;
+            ReadData1     : OUT std_logic_vector(31 downto 0);
+            ReadData2     : OUT std_logic_vector(31 downto 0)
+        );
+    end component;
+
+    -- Component Declaration for ALU32
+    component ALU32
+        port(
+            a       : in  std_logic_vector(31 downto 0);
+            b       : in  std_logic_vector(31 downto 0);
+            ALUctrl : in  std_logic_vector(3 downto 0);
+            rslt32  : out std_logic_vector(31 downto 0);
+            cond    : out std_logic
+        );
+    end component;
+
+begin
+    -- Sign extension for immediate value
+    imm_extended <= (31 downto 16 => imm(15)) & imm;
+
+    -- Instantiate the Register_File
+    reg_file: Register_File
+        port map (
+            ReadRegister1 => ReadRegister1,
+            ReadRegister2 => ReadRegister2,
+            WriteRegister => WriteRegister,
+            WriteData     => WriteData,
+            RegWrite      => RegWrite,
+            ReadData1     => ReadData1,
+            ReadData2     => ReadData2
+        );
+
+    -- Instantiate the ALU32
+    alu: ALU32
+        port map (
+            a       => rega,
+            b       => imm_extended,  -- Use sign-extended immediate instead of regb
+            ALUctrl => ALUCtrl,
+            rslt32  => ALU_result,
+            cond    => ALU_cond
+        );
+
+    -- Testbench process
+    stimulus: process
+    begin
+        -- Initialize signals
+        RegWrite <= '0';  -- Disable writing
+        WriteData <= (others => '0');
+        WriteRegister <= (others => '0');
+
+        -- 1. Read from register 1
+        ReadRegister1 <= "00001";  -- Register 1
+        ReadRegister2 <= "00010";  -- Register 2
+        wait for 10 ns;
+        
+        rega <= ReadData1;  -- Store in rega
+        report "Read Register 1 (rega) : " & to_hstring(rega);
+        report "Immediate value (sign-extended) : " & to_hstring(imm_extended);
+
+        -- 3. Set ALUCtrl to 0000 (changed from 0001)
+        ALUCtrl <= "0000";
+        wait for 10 ns;
+
+        -- 4. ALU operation happens automatically through port mapping
+        -- Store result and update rega
+        result <= ALU_result;
+        rega <= ALU_result;  -- Update rega with ALU result
+        WriteData <= ALU_result;
+        
+        report "ALU Result : " & to_hstring(result);
+
+        -- 5. Write result to register 3
+        WriteRegister <= "00011";  -- Register 3
+        RegWrite <= '1';
+        wait for 10 ns;
+        
+        PC <= PC + 4;
+        wait for 10 ns;
+        
+        -- End simulation
+        wait;
+    end process;
+end behavior;
